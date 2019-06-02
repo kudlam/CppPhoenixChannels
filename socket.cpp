@@ -1,8 +1,8 @@
 #include "socket.h"
-#include "channel.h"
 #include "channel_message.h"
 
 phoenix::socket::socket(const std::string &uri, const std::string &hostname, const std::string &cacert):m_cacert(cacert),m_hostname(hostname){
+    m_stop = false;
     m_client.init_asio();
     m_client.set_message_handler(bind(&socket::on_message, this, std::placeholders::_1,std::placeholders::_2));
     m_client.set_tls_init_handler(bind(&socket::on_tls_init, this, m_hostname.c_str(), std::placeholders::_1));
@@ -28,7 +28,7 @@ phoenix::socket::socket(const std::string &uri, const std::string &hostname, con
     connect();
     m_future = std::async(std::launch::async,[this](){
         //TODO stopping mechanism
-        while(true){
+        while(!this->m_stop){
             try{
                 m_client.run();
             }
@@ -42,7 +42,7 @@ phoenix::socket::socket(const std::string &uri, const std::string &hostname, con
 
     m_heartbeatFuture = std::async(std::launch::async,[this](){
         //TODO stopping
-        while(true){
+        while(!this->m_stop){
             try{
                 channelMessage message = {"phoenix","heartbeat","",std::to_string(this->getRef()),""};
                 nlohmann::json json = message;
@@ -55,6 +55,12 @@ phoenix::socket::socket(const std::string &uri, const std::string &hostname, con
         }
     });
 
+}
+
+phoenix::socket::~socket()
+{
+    m_stop = true;
+    m_client.stop();
 }
 
 void phoenix::socket::connect()
@@ -78,19 +84,21 @@ void phoenix::socket::send(const std::string &data){
     m_client.send(m_hdl, data, websocketpp::frame::opcode::text);
 }
 
-std::shared_ptr<phoenix::channel> phoenix::socket::getChannel(const std::string &topic)
+phoenix::channel& phoenix::socket::getChannel(const std::string &topic)
 {
-    auto channel = std::make_shared<phoenix::channel>(topic,shared_from_this());
-    this->registerChannel(channel);
-    return channel;
+    std::lock_guard<std::mutex> lock(m_toppicToChannelsMutex);
+    auto iter = m_toppicToChannels.emplace(std::piecewise_construct,std::forward_as_tuple(topic),std::forward_as_tuple(channel(topic,*this)));
+    return iter->second;
 }
 
-void phoenix::socket::registerChannel(std::shared_ptr<phoenix::channel> channel)
+void phoenix::socket::removeChannel(const std::string &topic)
 {
-    m_toppicToChannels.insert(std::make_pair(channel->topic(),channel));
+    std::lock_guard<std::mutex> lock(m_toppicToChannelsMutex);
+    m_toppicToChannels.erase(topic);
 }
 
-int32_t phoenix::socket::getRef(){
+
+uint32_t phoenix::socket::getRef(){
     std::lock_guard<std::mutex> lock(m_mutex);
     return m_ref++;
 }
@@ -99,10 +107,14 @@ void phoenix::socket::on_message(websocketpp::connection_hdl, client::message_pt
 {
     //TODO some kind of serialization
     nlohmann::json json = nlohmann::json::parse(msg->get_payload());
-    std::unique_ptr<channelMessage> channelMessage = std::unique_ptr<phoenix::channelMessage>(new phoenix::channelMessage(json));
-    auto range = m_toppicToChannels.equal_range(channelMessage->topic);
-    for(auto it = range.first; it != range.second; ++it){
-        it->second->processMessage(std::move(channelMessage));
+    channelMessage channelMessage = phoenix::channelMessage(json);
+    //TODO reduce lock
+    {
+        std::lock_guard<std::mutex> lock(m_toppicToChannelsMutex);
+        auto range = m_toppicToChannels.equal_range(channelMessage.topic);
+        for(auto it = range.first; it != range.second; ++it){
+            it->second.processMessage(channelMessage);
+        }
     }
 }
 

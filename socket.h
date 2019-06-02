@@ -7,9 +7,10 @@
 #include <future>
 #include <unordered_map>
 #include <memory>
+#include <atomic>
+#include "channel.h"
 namespace phoenix {
-class channel;
-class socket: public std::enable_shared_from_this<phoenix::socket>{
+class socket{
 public:
     enum state{
         INITIAL,
@@ -21,10 +22,11 @@ public:
     typedef websocketpp::lib::shared_ptr<websocketpp::lib::asio::ssl::context> context_ptr;
     typedef boost::asio::const_buffer const_buffer;
     socket(const std::string& uri, const std::string& hostname, const std::string& cacert);
+    ~socket();
     void send(const std::string& data);
-    std::shared_ptr<channel> getChannel(const std::string& topic);
-    void registerChannel(std::shared_ptr<channel> channel);
-    int32_t getRef();
+    phoenix::channel& getChannel(const std::string& topic);
+    void removeChannel(const std::string& topic);
+    uint32_t getRef();
 
 private:
 
@@ -36,12 +38,15 @@ private:
     std::mutex m_mutex;
     std::mutex m_cvMutex;
     std::condition_variable m_cv;
-    int32_t m_ref;
+    uint32_t m_ref = 0;
     std::future<void> m_future;
     int m_defaultHeartbeatMs = 5000;
     std::future<void> m_heartbeatFuture;
     state m_state = INITIAL;
-    std::unordered_multimap<std::string,std::shared_ptr<channel>> m_toppicToChannels;
+    std::mutex m_toppicToChannelsMutex;
+    typedef std::unordered_multimap<std::string,channel> toppicToChannels_t;
+    toppicToChannels_t m_toppicToChannels;
+    std::atomic<bool> m_stop;
 
     void connect();
     void waitForConnection();
