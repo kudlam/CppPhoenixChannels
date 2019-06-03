@@ -25,7 +25,7 @@ phoenix::push::~push()
         m_deatlineTimer->cancel();
         m_deatlineTimer.reset();
     }
-    std::cout << "Destructing push with m_ref: " << m_ref << std::endl;
+    //std::cout << "Destructing push with m_ref: " << m_ref << std::endl;
 }
 
 void phoenix::push::send()

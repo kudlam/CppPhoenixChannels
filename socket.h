@@ -52,9 +52,6 @@ private:
     void waitForConnection();
     void on_message(websocketpp::connection_hdl, client::message_ptr msg);
     context_ptr on_tls_init(const char * hostname, websocketpp::connection_hdl);
-    bool verify_certificate(const char * hostname, bool preverified, boost::asio::ssl::verify_context& ctx);
-    bool verify_subject_alternative_name(const char * hostname, X509 * cert);
-    bool verify_common_name(const char * hostname, X509 * cert);
 
 };
 

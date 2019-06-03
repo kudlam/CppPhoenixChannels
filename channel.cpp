@@ -13,7 +13,7 @@ phoenix::channel::channel(phoenix::channel &&other):m_mutex(),m_topic(std::move(
 
 phoenix::channel::~channel()
 {
-    std::cout << "Destructing channel" << std::endl;
+    //std::cout << "Destructing channel" << std::endl;
 }
 
 phoenix::push& phoenix::channel::join(){
@@ -25,7 +25,7 @@ phoenix::push& phoenix::channel::push( const std::string& event, const std::stri
     std::pair<idToPush_t::iterator,bool> it;
     {
         std::lock_guard<std::mutex> lock(m_mutex);
-        it = m_idToPush.emplace(std::piecewise_construct,std::forward_as_tuple(ref),std::forward_as_tuple(phoenix::push(*this,m_topic, event,payload, ref, m_joinRef)));
+        it = m_idToPush.emplace(std::piecewise_construct,std::forward_as_tuple(ref),std::forward_as_tuple(*this,m_topic, event,payload, ref, m_joinRef));
     }
     if(!it.second){
         throw std::runtime_error("Can start push");
