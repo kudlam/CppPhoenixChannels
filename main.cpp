@@ -27,18 +27,21 @@ int main()
                        "-----END CERTIFICATE-----");
     phoenix::socket s("wss://localhost:4002/socket/websocket","localhost",cacert);
     cout << "Socket created" << endl;
-    std::atomic<int> counter{0};
+    int counter{0};
+    std::mutex m;
     auto& channel = s.getChannel("telemetry:lobby");
-    auto okCallback = [&counter](phoenix::channelMessage& message){counter++;};
+    auto okCallback = [&counter,&m](phoenix::channelMessage& message){std::lock_guard<std::mutex> lock(m);counter++;};
     auto timeoutCallback = [](phoenix::channelMessage& ){std::cout << "Timeout callback" << std::endl;};
     auto errorHandler = [](phoenix::channelMessage& message){std::cout <<  "Received expected error:" << message.event << std::endl;};
     channel.join().receive("ok", okCallback).receive("error",errorHandler);
 
-    auto push = [&channel,errorHandler,okCallback,timeoutCallback](){channel.push("ping","").receive("error",errorHandler).receive("ok",okCallback).receive("timeout",timeoutCallback).start(phoenix::push::duration(10));};
-    for(int i=0;i<2000;i++)
+    auto push = [&channel,errorHandler,okCallback,timeoutCallback](){channel.push("ping","").receive("error",errorHandler).receive("ok",okCallback).receive("timeout",timeoutCallback).start(phoenix::push::duration(0));};
+    for(int i=0;i<10000;i++){
         push();
-    std::cout << "Waiting for sleep" << std::endl;
-    this_thread::sleep_for(std::chrono::milliseconds(5000));
+        this_thread::sleep_for(std::chrono::microseconds(200));
+    }
+    //std::cout << "Waiting for sleep" << std::endl;
+    //this_thread::sleep_for(std::chrono::milliseconds(1000));
     std::cout << "Finished: " << counter << std::endl;
 
 

@@ -37,7 +37,8 @@ void phoenix::push::send()
 void phoenix::push::start(phoenix::push::duration timeout)
 {
     send();
-    m_deatlineTimer = m_channel.setTimeout(timeout);
+    if(timeout.count() != 0)
+        m_deatlineTimer = m_channel.setTimeout(timeout);
 
 }
 
