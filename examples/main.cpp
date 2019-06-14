@@ -1,6 +1,6 @@
 #include <iostream>
-#include "socket.h"
-#include "push.h"
+#include "../socket.h"
+#include "../push.h"
 #include <thread>
 
 using namespace std;
