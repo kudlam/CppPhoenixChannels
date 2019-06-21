@@ -4,9 +4,9 @@
 phoenix::socket::socket(const std::string &uri, const std::string &hostname, const std::string &cacert):m_cacert(cacert),m_hostname(hostname){
 
     m_stop = false;
-    m_client.set_access_channels(websocketpp::log::alevel::none);
+    m_client.set_access_channels(websocketpp::log::alevel::all);
     m_client.clear_access_channels(websocketpp::log::alevel::frame_payload);
-    m_client.set_error_channels(websocketpp::log::elevel::none);
+    m_client.set_error_channels(websocketpp::log::elevel::all);
     m_client.init_asio();
     m_client.set_message_handler(bind(&socket::on_message, this, std::placeholders::_1,std::placeholders::_2));
     m_client.set_tls_init_handler(bind(&socket::on_tls_init, this, m_hostname.c_str(), std::placeholders::_1));
@@ -28,6 +28,7 @@ phoenix::socket::socket(const std::string &uri, const std::string &hostname, con
         connect();
         std::this_thread::sleep_for(std::chrono::milliseconds(1000));
     });
+    m_client.start_perpetual();
     m_uri = uri;
     connect();
     m_future = std::async(std::launch::async,[this](){
@@ -37,7 +38,8 @@ phoenix::socket::socket(const std::string &uri, const std::string &hostname, con
                 m_client.run();
             }
             catch(const std::exception& e){
-                std::cout << "Running thread failed with: "<< e.what() <<  std::endl;
+                std::cout << "Running thread failed with: "<< e.what() << std::endl;
+                m_client.close(m_hdl, websocketpp::close::status::protocol_error, "Error" );
             }
         }
     });
@@ -51,11 +53,11 @@ phoenix::socket::socket(const std::string &uri, const std::string &hostname, con
                 channelMessage message = {"phoenix","heartbeat","",std::to_string(this->getRef()),""};
                 nlohmann::json json = message;
                 this->send(json.dump());
-                std::this_thread::sleep_for(std::chrono::milliseconds(m_defaultHeartbeatMs));
             }
             catch(const std::exception& e){
                 std::cout << "Running thread failed with: "<< e.what() <<  std::endl;
             }
+            std::this_thread::sleep_for(std::chrono::milliseconds(m_defaultHeartbeatMs));
         }
     });
 
@@ -64,6 +66,7 @@ phoenix::socket::socket(const std::string &uri, const std::string &hostname, con
 phoenix::socket::~socket()
 {
     m_stop = true;
+    m_client.stop_perpetual();
     m_client.stop();
 }
 
@@ -110,6 +113,8 @@ uint32_t phoenix::socket::getRef(){
 void phoenix::socket::on_message(websocketpp::connection_hdl, client::message_ptr msg)
 {
     //TODO some kind of serialization
+    if(m_stop)
+        return;
     nlohmann::json json = nlohmann::json::parse(msg->get_payload());
     channelMessage channelMessage = phoenix::channelMessage(json);
     //TODO reduce lock
