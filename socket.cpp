@@ -4,9 +4,9 @@
 phoenix::socket::socket(const std::string &uri, const std::string &hostname, const std::string &cacert):m_cacert(cacert),m_hostname(hostname){
 
     m_stop = false;
-    m_client.set_access_channels(websocketpp::log::alevel::all);
+    m_client.set_access_channels(websocketpp::log::alevel::none);
     m_client.clear_access_channels(websocketpp::log::alevel::frame_payload);
-    m_client.set_error_channels(websocketpp::log::elevel::all);
+    m_client.set_error_channels(websocketpp::log::elevel::none);
     m_client.init_asio();
     m_client.set_message_handler(bind(&socket::on_message, this, std::placeholders::_1,std::placeholders::_2));
     m_client.set_tls_init_handler(bind(&socket::on_tls_init, this, m_hostname.c_str(), std::placeholders::_1));
