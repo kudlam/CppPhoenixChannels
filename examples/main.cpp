@@ -33,7 +33,7 @@ int main()
     auto okCallback = [&counter,&m](phoenix::channelMessage& message){std::lock_guard<std::mutex> lock(m);counter++;};
     auto timeoutCallback = [](phoenix::channelMessage& ){std::cout << "Timeout callback" << std::endl;};
     auto errorHandler = [](phoenix::channelMessage& message){std::cout <<  "Received expected error:" << message.event << std::endl;};
-    channel.join().receive("ok", okCallback).receive("error",errorHandler);
+    channel.join().receive("ok", okCallback).receive("error",errorHandler).start(phoenix::push::duration(0));
 
     auto push = [&channel,errorHandler,okCallback,timeoutCallback](){channel.push("ping","").receive("error",errorHandler).receive("ok",okCallback).receive("timeout",timeoutCallback).start(phoenix::push::duration(0));};
     for(int i=0;i<1000;i++){

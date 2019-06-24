@@ -20,6 +20,7 @@ phoenix::socket::socket(const std::string &uri, const std::string &hostname, con
         m_state = CLOSED;
         m_cv.notify_one();
         connect();
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
     });
     m_client.set_fail_handler([this](websocketpp::connection_hdl hdl){
         std::unique_lock<std::mutex> lock(m_cvMutex);

@@ -30,7 +30,6 @@ phoenix::push& phoenix::channel::push( const std::string& event, const std::stri
     if(!it.second){
         throw std::runtime_error("Can start push");
     }
-    it.first->second.send();
     return it.first->second;
 }
 
