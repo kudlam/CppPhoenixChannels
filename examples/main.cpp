@@ -41,7 +41,7 @@ int main()
         this_thread::sleep_for(std::chrono::microseconds(100));
     }
     //std::cout << "Waiting for sleep" << std::endl;
-    this_thread::sleep_for(std::chrono::milliseconds(100));
+    this_thread::sleep_for(std::chrono::milliseconds(10000));
     std::cout << "Finished: " << counter << std::endl;
 
 

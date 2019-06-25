@@ -8,8 +8,8 @@ void phoenix::from_json(const nlohmann::json &j, phoenix::channelMessage &messag
     j.at("topic").get_to(message.topic);
     j.at("event").get_to( message.event);
     message.payload = j.at("payload").dump();
-    if(j.find("ref") != j.end())
+    if(j.find("ref") != j.end() && j.at("ref").type() != nlohmann::detail::value_t::null)
         j.at("ref").get_to(message.ref);
-    if(j.find("join_ref") != j.end())
+    if(j.find("join_ref") != j.end() && j.at("ref").type() != nlohmann::detail::value_t::null)
         j.at("join_ref").get_to(message.join_ref);
 }

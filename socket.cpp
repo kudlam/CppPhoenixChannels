@@ -69,6 +69,8 @@ phoenix::socket::~socket()
     m_stop = true;
     m_client.stop_perpetual();
     m_client.stop();
+    m_future.wait();
+
 }
 
 void phoenix::socket::connect()
