@@ -33,12 +33,18 @@ int main()
     auto okCallback = [&counter,&m](phoenix::channelMessage& message){std::lock_guard<std::mutex> lock(m);counter++;};
     auto timeoutCallback = [](phoenix::channelMessage& ){std::cout << "Timeout callback" << std::endl;};
     auto errorHandler = [](phoenix::channelMessage& message){std::cout <<  "Received expected error:" << message.event << std::endl;};
+    s.waitForConnection();
     channel.join().receive("ok", okCallback).receive("error",errorHandler).start(phoenix::push::duration(0));
 
-    auto push = [&channel,errorHandler,okCallback,timeoutCallback](){channel.push("ping","").receive("error",errorHandler).receive("ok",okCallback).receive("timeout",timeoutCallback).start(phoenix::push::duration(0));};
+    auto push = [&channel,errorHandler,okCallback,timeoutCallback](int id){channel.push("state","{\"id\":" + std::to_string(id)+"}").receive("error",errorHandler).receive("ok",okCallback).receive("timeout",timeoutCallback).start(phoenix::push::duration(0));};
     for(int i=0;i<1000;i++){
-        push();
-        this_thread::sleep_for(std::chrono::microseconds(100));
+        try{
+            push(i);
+        }
+        catch(const std::exception& e){
+            std::cout << "Error during sending: " << i << ", "<< e.what() << std::endl;
+        }
+        this_thread::sleep_for(std::chrono::milliseconds(1000));
     }
     //std::cout << "Waiting for sleep" << std::endl;
     this_thread::sleep_for(std::chrono::milliseconds(10000));

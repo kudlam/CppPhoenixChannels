@@ -11,21 +11,29 @@ phoenix::socket::socket(const std::string &uri, const std::string &hostname, con
     m_client.set_message_handler(bind(&socket::on_message, this, std::placeholders::_1,std::placeholders::_2));
     m_client.set_tls_init_handler(bind(&socket::on_tls_init, this, m_hostname.c_str(), std::placeholders::_1));
     m_client.set_open_handler([this](websocketpp::connection_hdl hdl){
-        std::unique_lock<std::mutex> lock(m_cvMutex);
-        m_state = OPENED;
-        m_cv.notify_one();
+        {
+            std::unique_lock<std::mutex> lock(m_cvMutex);
+            m_state = OPENED;
+            m_cv.notify_one();
+        }
+        rejoinAllChannels();
     });
     m_client.set_close_handler([this](websocketpp::connection_hdl hdl){
-        std::unique_lock<std::mutex> lock(m_cvMutex);
-        m_state = CLOSED;
-        m_cv.notify_one();
+
+        {
+            std::unique_lock<std::mutex> lock(m_cvMutex);
+            m_state = CLOSED;
+            m_cv.notify_one();
+        }
         connect();
         std::this_thread::sleep_for(std::chrono::milliseconds(1000));
     });
     m_client.set_fail_handler([this](websocketpp::connection_hdl hdl){
-        std::unique_lock<std::mutex> lock(m_cvMutex);
-        m_state = FAILED;
-        m_cv.notify_one();
+        {
+            std::unique_lock<std::mutex> lock(m_cvMutex);
+            m_state = FAILED;
+            m_cv.notify_one();
+        }
         connect();
         std::this_thread::sleep_for(std::chrono::milliseconds(1000));
     });
@@ -44,21 +52,21 @@ phoenix::socket::socket(const std::string &uri, const std::string &hostname, con
             }
         }
     });
-    waitForConnection();
 
 
     m_heartbeatFuture = std::async(std::launch::async,[this](){
         //TODO stopping
         while(!this->m_stop){
+            std::this_thread::sleep_for(std::chrono::milliseconds(m_defaultHeartbeatMs));
             try{
                 channelMessage message = {"phoenix","heartbeat","",std::to_string(this->getRef()),""};
                 nlohmann::json json = message;
                 this->send(json.dump());
             }
             catch(const std::exception& e){
-                std::cout << "Running thread failed with: "<< e.what() <<  std::endl;
-            }
-            std::this_thread::sleep_for(std::chrono::milliseconds(m_defaultHeartbeatMs));
+                std::cout << "Running heartbeat thread failed with: "<< e.what() <<  std::endl;
+                m_client.close(m_hdl, websocketpp::close::status::protocol_error, "Error sending heartbeat" );
+            }            
         }
     });
 
@@ -87,8 +95,26 @@ void phoenix::socket::connect()
 void phoenix::socket::waitForConnection()
 {
     std::unique_lock<std::mutex> lock(m_cvMutex);
-    m_cv.wait(lock,[this](){return m_state != INITIAL;});
+    m_cv.wait(lock,[this](){return m_state == OPENED;});
 }
+
+void phoenix::socket::rejoinAllChannels()
+{
+    std::unique_lock<std::mutex> lock(m_toppicToChannelsMutex);
+    for(auto& topicChannels : m_toppicToChannels){
+        //TDO maybe something else on fail
+        topicChannels.second.join().
+            receive("ok",[](phoenix::channelMessage& message){
+                                       std::cout << "Successfully joined channel with topic " << message.topic << std::endl;
+                                   }).
+            receive("error",[this](phoenix::channelMessage& message){
+                    std::cout << "Failed joining to channel with topic, error: " << message.topic << "," << message.payload << std::endl;
+                    m_client.close(m_hdl, websocketpp::close::status::protocol_error, "Error" );
+                }).
+            start(phoenix::push::duration(0));
+    }
+}
+
 
 void phoenix::socket::send(const std::string &data){
     m_client.send(m_hdl, data, websocketpp::frame::opcode::text);
@@ -149,3 +175,4 @@ phoenix::socket::context_ptr phoenix::socket::on_tls_init(const char *hostname, 
     }
     return ctx;
 }
+

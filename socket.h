@@ -27,6 +27,7 @@ public:
     phoenix::channel& getChannel(const std::string& topic);
     void removeChannel(const std::string& topic);
     uint32_t getRef();
+    void waitForConnection();
 
 private:
 
@@ -49,9 +50,9 @@ private:
     std::atomic<bool> m_stop;
 
     void connect();
-    void waitForConnection();
     void on_message(websocketpp::connection_hdl, client::message_ptr msg);
     context_ptr on_tls_init(const char * hostname, websocketpp::connection_hdl);
+    void rejoinAllChannels();
 
 };
 
