@@ -48,7 +48,11 @@ phoenix::socket::socket(const std::string &uri, const std::string &hostname, con
             }
             catch(const std::exception& e){
                 std::cout << "Running thread failed with: "<< e.what() << std::endl;
-                m_client.close(m_hdl, websocketpp::close::status::protocol_error, "Error" );
+                websocketpp::lib::error_code  ec;
+                m_client.close(m_hdl, websocketpp::close::status::protocol_error, "Error", ec );
+                if(ec)
+                    std::cout << "Failed closing socket: "<< ec << std::endl;
+
             }
         }
     });
@@ -65,7 +69,10 @@ phoenix::socket::socket(const std::string &uri, const std::string &hostname, con
             }
             catch(const std::exception& e){
                 std::cout << "Running heartbeat thread failed with: "<< e.what() <<  std::endl;
-                m_client.close(m_hdl, websocketpp::close::status::protocol_error, "Error sending heartbeat" );
+                websocketpp::lib::error_code  ec;
+                m_client.close(m_hdl, websocketpp::close::status::protocol_error, "Error sending heartbeat", ec );
+                if(ec)
+                    std::cout << "Failed closing socket: "<< ec << std::endl;
             }            
         }
     });
