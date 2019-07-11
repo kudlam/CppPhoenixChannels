@@ -35,6 +35,7 @@ private:
     std::string m_cacert;
     std::string m_hostname;
     std::string m_uri;
+    client::connection_ptr m_con;
     websocketpp::connection_hdl m_hdl;
     std::mutex m_mutex;
     std::mutex m_cvMutex;

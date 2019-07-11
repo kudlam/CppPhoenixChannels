@@ -48,11 +48,12 @@ phoenix::socket::socket(const std::string &uri, const std::string &hostname, con
             }
             catch(const std::exception& e){
                 std::cout << "Running thread failed with: "<< e.what() << std::endl;
+
                 websocketpp::lib::error_code  ec;
                 m_client.close(m_hdl, websocketpp::close::status::protocol_error, "Error", ec );
-                if(ec)
-                    std::cout << "Failed closing socket: "<< ec << std::endl;
-
+                if(ec){
+                    std::cout << "Failed closing socket: "<< ec.message() << std::endl;
+                }
             }
         }
     });
@@ -70,10 +71,11 @@ phoenix::socket::socket(const std::string &uri, const std::string &hostname, con
             catch(const std::exception& e){
                 std::cout << "Running heartbeat thread failed with: "<< e.what() <<  std::endl;
                 websocketpp::lib::error_code  ec;
-                m_client.close(m_hdl, websocketpp::close::status::protocol_error, "Error sending heartbeat", ec );
-                if(ec)
-                    std::cout << "Failed closing socket: "<< ec << std::endl;
-            }            
+                m_client.close(m_hdl, websocketpp::close::status::protocol_error, "Error", ec );
+                if(ec){
+                    std::cout << "Failed closing socket in heartbeat: "<< ec.message() << std::endl;
+                }
+            }
         }
     });
 
@@ -91,12 +93,12 @@ phoenix::socket::~socket()
 void phoenix::socket::connect()
 {
     websocketpp::lib::error_code ec;
-    client::connection_ptr con = m_client.get_connection(m_uri, ec);
+    m_con = m_client.get_connection(m_uri, ec);
     if (ec) {
         std::cout << "Failed to get connection: " << ec << std::endl;
     }
-    m_hdl = con->get_handle();
-    m_client.connect(con);
+    m_hdl = m_con->get_handle();
+    m_client.connect(m_con);
 }
 
 void phoenix::socket::waitForConnection()
