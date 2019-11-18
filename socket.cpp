@@ -11,12 +11,12 @@ phoenix::socket::socket(const std::string &uri, const std::string &hostname, con
     m_client.set_message_handler(bind(&socket::on_message, this, std::placeholders::_1,std::placeholders::_2));
     m_client.set_tls_init_handler(bind(&socket::on_tls_init, this, m_hostname.c_str(), std::placeholders::_1));
     m_client.set_open_handler([this](websocketpp::connection_hdl hdl){
+        rejoinAllChannels();
         {
             std::unique_lock<std::mutex> lock(m_cvMutex);
             m_state = OPENED;
             m_cv.notify_one();
         }
-        rejoinAllChannels();
     });
     m_client.set_close_handler([this](websocketpp::connection_hdl hdl){
 
