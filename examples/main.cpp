@@ -2,6 +2,7 @@
 #include "../socket.h"
 #include "../push.h"
 #include <thread>
+#include <boost/date_time.hpp>
 
 using namespace std;
 
@@ -25,7 +26,8 @@ int main()
                        "pRVAkjckgvq92SsAE5AemC8LHezxCFO0RFQgL4YAX08gDnBnkNy95LsfZQr/nvDu\n"
                        "mlpzC+EpkDBIrvGpwbHn\n"
                        "-----END CERTIFICATE-----");
-    phoenix::socket s("wss://localhost:4002/socket/websocket","localhost",cacert);
+    //phoenix::socket s("wss://localhost:4002/socket/websocket","localhost",cacert);
+    phoenix::socket s("ws://localhost:4003/socket/websocket","","");
     cout << "Socket created" << endl;
     int counter{0};
     std::mutex m;
@@ -35,19 +37,33 @@ int main()
     auto errorHandler = [](phoenix::channelMessage& message){std::cout <<  "Received expected error:" << message.event << std::endl;};
     s.waitForConnection();
     channel.join().receive("ok", okCallback).receive("error",errorHandler).start(phoenix::push::duration(0));
+    this_thread::sleep_for(std::chrono::milliseconds(2000));
 
-    auto push = [&channel,errorHandler,okCallback,timeoutCallback](int id){channel.push("state","{\"id\":" + std::to_string(id)+"}").receive("error",errorHandler).receive("ok",okCallback).receive("timeout",timeoutCallback).start(phoenix::push::duration(0));};
-    for(int i=0;i<1000;i++){
+    auto push = [&channel,errorHandler,okCallback,timeoutCallback](int id){
+        std::string data;
+        data.reserve(200);
+        boost::posix_time::ptime ptime{boost::posix_time::microsec_clock::universal_time()};
+        data.append("{\"id\":");
+        data.append(std::to_string(id));
+        data.append(",\"time\":\"");
+        data.append(boost::posix_time::to_iso_extended_string(ptime));
+        data.append("\"}");
+        channel.push("state",data).receive("error",errorHandler).receive("ok",okCallback).receive("timeout",timeoutCallback).start(phoenix::push::duration(0));
+        boost::posix_time::ptime ptimeEnd{boost::posix_time::microsec_clock::universal_time()};
+        std::cout << "Sending took: " <<  (ptimeEnd-ptime).total_microseconds() << "us" << std::endl;
+    };
+    for(int i=0;i<10;i++){
         try{
-            push(i);
+           push(i);
+
         }
         catch(const std::exception& e){
             std::cout << "Error during sending: " << i << ", "<< e.what() << std::endl;
         }
-        this_thread::sleep_for(std::chrono::milliseconds(1000));
+        this_thread::sleep_for(std::chrono::milliseconds(10));
     }
     //std::cout << "Waiting for sleep" << std::endl;
-    this_thread::sleep_for(std::chrono::milliseconds(10000));
+    this_thread::sleep_for(std::chrono::milliseconds(1000));
     std::cout << "Finished: " << counter << std::endl;
 
 
