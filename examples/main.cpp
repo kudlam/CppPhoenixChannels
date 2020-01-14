@@ -26,8 +26,8 @@ int main()
                        "pRVAkjckgvq92SsAE5AemC8LHezxCFO0RFQgL4YAX08gDnBnkNy95LsfZQr/nvDu\n"
                        "mlpzC+EpkDBIrvGpwbHn\n"
                        "-----END CERTIFICATE-----");
-    //phoenix::socket s("wss://localhost:4002/socket/websocket","localhost",cacert);
-    phoenix::socket s("ws://localhost:4003/socket/websocket","","");
+    phoenix::socket s("wss://localhost:4002/socket/websocket","localhost",cacert);
+    //phoenix::socket s("ws://localhost:4003/socket/websocket","localhost",cacert);
     cout << "Socket created" << endl;
     int counter{0};
     std::mutex m;
