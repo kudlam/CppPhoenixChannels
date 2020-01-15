@@ -42,7 +42,7 @@ private:
     std::condition_variable m_cv;
     uint32_t m_ref = 0;
     std::future<void> m_future;
-    int m_defaultHeartbeatMs = 5000;
+    int m_defaultHeartbeatMs = 30000;
     std::future<void> m_heartbeatFuture;
     state m_state = INITIAL;
     std::mutex m_toppicToChannelsMutex;
