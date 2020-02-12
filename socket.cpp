@@ -126,7 +126,7 @@ void phoenix::socket::rejoinAllChannels()
 
 
 void phoenix::socket::send(const std::string &data){
-    m_client.send(m_hdl, data, websocketpp::frame::opcode::text);
+    m_client.send(m_hdl, data, websocketpp::frame::opcode::binary);
 }
 
 phoenix::channel& phoenix::socket::getChannel(const std::string &topic)
