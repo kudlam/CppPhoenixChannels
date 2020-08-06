@@ -38,6 +38,7 @@ int main()
     s.waitForConnection();
     channel.join().receive("ok", okCallback).receive("error",errorHandler).start(phoenix::push::duration(0));
     this_thread::sleep_for(std::chrono::milliseconds(2000));
+    channel.on("event",okCallback);
 
     auto push = [&channel,errorHandler,okCallback,timeoutCallback](int id){
         std::string data;
@@ -47,12 +48,16 @@ int main()
         data.append(std::to_string(id));
         data.append(",\"time\":\"");
         data.append(boost::posix_time::to_iso_extended_string(ptime));
-        data.append("\"}");
+        data.append("\"");
+        data.append(",\"position\":");
+        data.append("{\"movementId\":\"1\",\"locations\":");
+        data.append("[{\"latitude\":10,\"longitude\":10,\"altitude\":10}]}");
+        data.append("}");
         channel.push("state",data).receive("error",errorHandler).receive("ok",okCallback).receive("timeout",timeoutCallback).start(phoenix::push::duration(0));
         boost::posix_time::ptime ptimeEnd{boost::posix_time::microsec_clock::universal_time()};
         std::cout << "Sending took: " <<  (ptimeEnd-ptime).total_microseconds() << "us" << std::endl;
     };
-    for(int i=0;i<10;i++){
+    for(int i=0;i<1000;i++){
         try{
            push(i);
 
@@ -60,7 +65,7 @@ int main()
         catch(const std::exception& e){
             std::cout << "Error during sending: " << i << ", "<< e.what() << std::endl;
         }
-        this_thread::sleep_for(std::chrono::milliseconds(10));
+        this_thread::sleep_for(std::chrono::milliseconds(100));
     }
     //std::cout << "Waiting for sleep" << std::endl;
     this_thread::sleep_for(std::chrono::milliseconds(1000));

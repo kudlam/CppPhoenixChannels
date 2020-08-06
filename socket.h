@@ -28,6 +28,7 @@ public:
     void removeChannel(const std::string& topic);
     uint32_t getRef();
     void waitForConnection();
+    void waitForConnectionOrFail();
 
 private:
 
