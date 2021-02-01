@@ -35,7 +35,7 @@ phoenix::socket::socket(const std::string &uri, const std::string &hostname, con
             m_state = FAILED;
             m_cv.notify_one();
         }
-        m_onErrorCallback("Fail in nadler");
+        m_onErrorCallback("Fail in hadler");
         if(!this->m_stop)
             connect();
         std::this_thread::sleep_for(std::chrono::milliseconds(1000));
