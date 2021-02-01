@@ -34,6 +34,8 @@ int main()
     phoenix::socket s("wss://localhost:4002/socket/websocket","localhost",cacert);
     //phoenix::socket s("ws://localhost:4003/socket/websocket","localhost",cacert);
     cout << "Socket created" << endl;
+    s.setOnOkCallback([](){std::cout << "OK" << std::endl;});
+    s.setOnErrorCallback([](const std::string& error){std::cout << "Error: " << error <<  std::endl;});
     int counter{0};
     std::mutex m;
     auto& channel = s.getChannel("telemetry:lobby");
@@ -56,13 +58,13 @@ int main()
         data.append("\"");
         data.append(",\"position\":");
         data.append("{\"movementId\":\"1\",\"locations\":");
-        data.append("[{\"latitude\":10,\"longitude\":10,\"altitude\":10}]}");
+        data.append("[{\"time\":\"" + boost::posix_time::to_iso_extended_string(ptime) + "\",\"latitude\":10,\"longitude\":10,\"altitude\":10}]}");
         data.append("}");
         channel.push("state",data).receive("error",errorHandler).receive("ok",okCallback).receive("timeout",timeoutCallback).start(phoenix::push::duration(0));
         boost::posix_time::ptime ptimeEnd{boost::posix_time::microsec_clock::universal_time()};
         std::cout << "Sending took: " <<  (ptimeEnd-ptime).total_microseconds() << "us" << std::endl;
     };
-    for(int i=0;i<1000;i++){
+    for(int i=0;i<10000;i++){
         try{
            push(i);
 

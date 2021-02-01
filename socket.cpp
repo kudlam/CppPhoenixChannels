@@ -35,6 +35,7 @@ phoenix::socket::socket(const std::string &uri, const std::string &hostname, con
             m_state = FAILED;
             m_cv.notify_one();
         }
+        m_onErrorCallback("Fail in nadler");
         if(!this->m_stop)
             connect();
         std::this_thread::sleep_for(std::chrono::milliseconds(1000));
@@ -53,6 +54,7 @@ phoenix::socket::socket(const std::string &uri, const std::string &hostname, con
 
                 websocketpp::lib::error_code  ec;
                 m_client.close(m_hdl, websocketpp::close::status::protocol_error, "Error", ec );
+                m_onErrorCallback(e.what());
                 if(ec){
                     std::cout << "Failed closing socket: "<< ec.message() << std::endl;
                 }
@@ -74,6 +76,7 @@ phoenix::socket::socket(const std::string &uri, const std::string &hostname, con
                 std::cout << "Running heartbeat thread failed with: "<< e.what() <<  std::endl;
                 websocketpp::lib::error_code  ec;
                 m_client.close(m_hdl, websocketpp::close::status::protocol_error, "Error", ec );
+                m_onErrorCallback(e.what());
                 if(ec){
                     std::cout << "Failed closing socket in heartbeat: "<< ec.message() << std::endl;
                 }
@@ -113,6 +116,16 @@ void phoenix::socket::waitForConnectionOrFail()
 {
     std::unique_lock<std::mutex> lock(m_cvMutex);
     m_cv.wait(lock,[this](){return m_state != INITIAL;});
+}
+
+void phoenix::socket::setOnOkCallback(const std::function<void ()> &onOkCallback)
+{
+    m_onOkCallback = onOkCallback;
+}
+
+void phoenix::socket::setOnErrorCallback(const std::function<void (const std::string &error)> &onErrorCallback)
+{
+    m_onErrorCallback = onErrorCallback;
 }
 
 void phoenix::socket::rejoinAllChannels()
@@ -161,6 +174,7 @@ void phoenix::socket::on_message(websocketpp::connection_hdl, client::message_pt
     //TODO some kind of serialization
     if(m_stop)
         return;
+    m_onOkCallback();
     nlohmann::json json = nlohmann::json::parse(msg->get_payload());
     channelMessage channelMessage = phoenix::channelMessage(json);
     //TODO reduce lock

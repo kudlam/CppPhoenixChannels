@@ -30,6 +30,10 @@ public:
     void waitForConnection();
     void waitForConnectionOrFail();
 
+    void setOnErrorCallback(const std::function<void (const std::string &error)> &onErrorCallback);
+
+    void setOnOkCallback(const std::function<void ()> &onOkCallback);
+
 private:
 
     client m_client;
@@ -50,6 +54,10 @@ private:
     typedef std::unordered_multimap<std::string,channel> toppicToChannels_t;
     toppicToChannels_t m_toppicToChannels;
     std::atomic<bool> m_stop;
+    std::function<void (const std::string& error)> m_onErrorCallback;
+    std::function<void ()> m_onOkCallback;
+
+
 
     void connect();
     void on_message(websocketpp::connection_hdl, client::message_ptr msg);

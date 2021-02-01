@@ -8,9 +8,8 @@ set(SOURCES channel.cpp  socket.cpp  push.cpp channel_message.cpp examples/main.
 add_executable(${PROJECT_NAME} ${SOURCES})
 target_include_directories(${PROJECT_NAME} PRIVATE "./websocketpp")
 FIND_PACKAGE(OpenSSL)
-set( BOOST_ROOT "/opt/boost_1_72_0/build" CACHE PATH "Boost library path" )
-set( Boost_NO_SYSTEM_PATHS on CACHE BOOL "Do not search system for Boost" )
-FIND_PACKAGE( Boost COMPONENTS thread system REQUIRED )
-TARGET_LINK_LIBRARIES( ${PROJECT_NAME} LINK_PUBLIC ${Boost_LIBRARIES} -lpthread )
+
+link_directories("/opt/boost_1_72_0/build/lib")
+TARGET_LINK_LIBRARIES( ${PROJECT_NAME} LINK_PUBLIC boost_date_time boost_system -lpthread )
 TARGET_LINK_LIBRARIES (${PROJECT_NAME} ${OPENSSL_SSL_LIBRARY} ${OPENSSL_CRYPTO_LIBRARY})
 
