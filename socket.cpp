@@ -56,6 +56,14 @@ phoenix::socket::socket(const std::string &uri, const std::string &hostname, con
                 m_client.close(m_hdl, websocketpp::close::status::protocol_error, "Error", ec );
                 m_onErrorCallback(e.what());
                 if(ec){
+                    state state;
+                    {
+                        std::unique_lock<std::mutex> lock(m_cvMutex);
+                        state = m_state;
+                    }
+                    if(state != OPENED){
+                        connect();
+                    }
                     std::cout << "Failed closing socket: "<< ec.message() << std::endl;
                 }
             }
