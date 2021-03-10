@@ -3,6 +3,8 @@
 
 phoenix::socket::socket(const std::string &uri, const std::string &hostname, const std::string &cacert):m_cacert(cacert),m_hostname(hostname){
 
+    m_onOkCallback = [](){};
+    m_onErrorCallback = [](const std::string& error){};
     m_stop = false;
     m_client.set_access_channels(websocketpp::log::alevel::none);
     m_client.clear_access_channels(websocketpp::log::alevel::frame_payload);
