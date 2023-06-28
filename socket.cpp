@@ -76,7 +76,13 @@ phoenix::socket::socket(const std::string &uri, const std::string &hostname, con
     m_heartbeatFuture = std::async(std::launch::async,[this](){
         //TODO stopping
         while(!this->m_stop){
-            std::this_thread::sleep_for(std::chrono::milliseconds(m_defaultHeartbeatMs));
+            int timeDiff = 500;
+            for(int i = 0; i < m_defaultHeartbeatMs; i = i + timeDiff){
+                std::this_thread::sleep_for(std::chrono::milliseconds(timeDiff));
+                if(this->m_stop)
+                    break;
+            }
+
             try{
                 channelMessage message = {"phoenix","heartbeat","",std::to_string(this->getRef()),""};
                 nlohmann::json json = message;
